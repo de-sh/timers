@@ -1,10 +1,9 @@
-use std::error::Error;
+use figlet_rs::FIGfont;
 use std::env;
 use std::fmt;
 use std::str;
-use std::thread;
-use std::time::{Duration, Instant};
-use figlet_rs::FIGfont;
+use std::time::Duration;
+use tokio::time::{self, Instant};
 
 #[derive(Debug, Clone)]
 pub struct ParserError;
@@ -16,25 +15,23 @@ impl fmt::Display for ParserError {
 }
 
 pub struct Config {
-    pub seconds: usize
+    pub seconds: usize,
 }
 
 impl Config {
     pub fn new(mut args: env::Args) -> Result<Config, &'static str> {
         args.next();
 
-        let seconds= match args.next() {
+        let seconds = match args.next() {
             Some(arg) => Config::parse_time_string(&arg).expect("Error parsing time string"),
             None => return Err("Didn't get a countdown"),
         };
 
-        Ok(Config {
-            seconds,
-        })
+        Ok(Config { seconds })
     }
 
     /// Parses the time argument into hours, minutes and seconds
-    /// 
+    ///
     /// h -> hours
     /// m -> minutes
     /// s -> seconds
@@ -56,15 +53,15 @@ impl Config {
                 'h' => {
                     hours = s.parse::<usize>().unwrap();
                     s = String::new();
-                },
+                }
                 'm' => {
                     minutes = s.parse::<usize>().unwrap();
                     s = String::new();
-                },
+                }
                 's' => {
                     seconds = s.parse::<usize>().unwrap();
                     s = String::new();
-                },
+                }
                 _ => s.push(char),
             };
         }
@@ -75,23 +72,20 @@ impl Config {
     }
 }
 
-pub fn run(config: Config) -> Result<(), Box<dyn Error>> {
-    let start_time = Instant::now();
-    loop {
-        let elapsed_time = start_time.elapsed().as_secs() as usize;
-        if elapsed_time >= config.seconds {
-            return Ok(())
-        }
-
+pub async fn run(config: Config) {
+    let start_time = Instant::now();    
+    for time in 0..config.seconds {
         // clear terminal
         print!("\x1B[2J\x1B[1;1H");
-        
+
         let font = FIGfont::standand().unwrap();
-        let time_left = config.seconds - elapsed_time;
+        time::sleep_until(start_time + Duration::from_secs(time as u64)).await;
+
+        let time_left = config.seconds - time;
         let figure = font.convert(time_left.to_string().as_str());
         println!("{}", figure.unwrap());
 
-        thread::sleep(Duration::from_millis(1000));
+        
     }
 }
 

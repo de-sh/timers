@@ -4,7 +4,8 @@ use notify_rust::Notification;
 
 use timers::Config;
 
-fn main () {
+#[tokio::main]
+async fn main() {
     // clear terminal
     print!("\x1B[2J\x1B[1;1H");
 
@@ -13,11 +14,7 @@ fn main () {
         process::exit(1);
     });
 
-    if let Err(e) = timers::run(config) {
-        eprintln!("Application error: {}", e);
-
-        process::exit(1);
-    }
+    timers::run(config).await;
 
     Notification::new()
         .summary("Timer")
